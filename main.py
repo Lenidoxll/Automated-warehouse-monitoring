@@ -17,25 +17,10 @@ import time
 
 client = Client(host='75.119.142.124', port=9035, user='default', password='qolkasw10-=', database='default')
 
-'''
-DATABASE_URL = "sqlite:///./test.db"
-database = Database(DATABASE_URL)
-
-# SQLAlchemy setup
-metadata = MetaData()
-engine = create_engine(DATABASE_URL)
-messages = Table(
-    "messages",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("content", String),
-)
-'''
-
 # FastAPI setup
 app = FastAPI()
 
-df = pd.DataFrame(columns=['status', 'id_forklift', 'id_warehouse', 'id_task', 'id_point', 'event_timestamp'])
+df = pd.DataFrame(columns=['status', 'id_forklift', 'id_warehouse', 'id_task', 'id_point', 'event_timestamp','last_service_date'])
 
 query = """
 SELECT id_forklift,id_warehouse,id_point
@@ -50,19 +35,11 @@ WHERE event_timestamp = max_event_timestamp
 # Выполните запрос и получите результат
 result = client.execute(query)
 current_dic = {str((x, y)): value for x, y, value in result}
-print(current_dic)
 
-k=0
-'''
-@app.on_event("startup")
-async def startup_db_client():
-    await database.connect()
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    await database.disconnect()
-'''
+time_all=0
 active_connections = []
+dict_active_connections = {}
 
 async def send_updated_data(new_data):
     global current_dic
@@ -73,28 +50,21 @@ async def send_updated_data(new_data):
 
     # Преобразуем в словарь
     result_dict = selected_columns.set_index('key')['id_point'].to_dict()
-    #print(result_dict)
     #print('--------------------------------------------------------------------------------------')
     flag = False
+    update_df = {}
     for i in result_dict:
         if (i in current_dic and result_dict[i]!=current_dic[i]) or (not i in current_dic):
+            update_df[i] = str(result_dict[i])
             flag = True
         current_dic[i]=str(result_dict[i])
-       # print(current_dic[i],result_dict[i])
 
 
     if flag:
-        json_str = json.dumps(current_dic)
+        json_str = json.dumps(update_df)
         print(len(active_connections))
         for connection in active_connections:
-            if connection.state == WebSocketState.CONNECTED:
-                print('STATE???')
-                await connection.send_text(json_str)
-            else:
-                print('Not Connected:', connection)
-
-                print('NOT CONNECTED')
-
+            await connection.send_text(json_str)
 
 @app.websocket("/ws2")
 async def websocket_endpoint2(websocket: WebSocket):
@@ -102,46 +72,60 @@ async def websocket_endpoint2(websocket: WebSocket):
     active_connections.append(websocket)
     try:
         json_str = json.dumps(current_dic)
-        print('ОТПРАВИЛ???')
+        print('Send data')
         await websocket.send_text(json_str)
        
-        print("Сообщение отправлено клиенту")  # Добавьте эту строку для логирования
-        while websocket.state == WebSocketState.CONNECTED:
-            await asyncio.sleep(1)
+        print("Сообщение отправлено клиенту") 
+        while True:  # Бесконечный цикл для приема сообщений
+            message = await websocket.receive_text()
     except WebSocketDisconnect:
         # Соединение закрыто
-        print('СОЕДИНЕНИЕ ЗАКРЫТО')
         active_connections.remove(websocket)
+    if len(active_connections)>0:
+        print(websocket.state == WebSocketState.CONNECTED)
+        print(active_connections[-1]==WebSocketState.CONNECTED)
 
-
-
+start = time.time()
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global df
-    global k
+    global start
     await websocket.accept()
-    
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f"You sent: {data}")
-       # print(data)
-        new_data = pd.DataFrame([dict(zip(df.columns,data.split(';')))])
-        new_data1 = new_data.copy()
-        await send_updated_data(new_data1)
-        new_data['event_timestamp'] = pd.to_datetime(new_data['event_timestamp'], format='%Y-%m-%d %H:%M:%S.%f')
+    file_csv = open('log.csv','a')
 
-        df = pd.concat([df, new_data], ignore_index=True)
-       # print(df)
-        k+=1
-        if k%100 == 0:
-            df_insert = df.copy()
-            df_insert['id_forklift'] = df_insert['id_forklift'].astype(int)
-            df_insert['id_warehouse'] = df_insert['id_warehouse'].astype(int)
-            df_insert['id_task'] = df_insert['id_task'].astype(int)
-            client.execute('INSERT INTO main_data_stg (status, id_forklift, id_warehouse, id_task, id_point, event_timestamp) VALUES', list(df_insert.itertuples(index=False, name=None)))
-            df = pd.DataFrame(columns=['status', 'id_forklift', 'id_warehouse', 'id_task', 'id_point', 'event_timestamp'])
-            df = df.drop(df[df.isin(df_insert.to_dict('list')).all(axis=1)].index)
-            print('CUR_DF = ',df)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await websocket.send_text(f"You sent: {data}")
+            file_csv.write(data+'\n')
+        # print(data)
+            new_data = pd.DataFrame([dict(zip(df.columns,data.split(';')))])
+            new_data1 = new_data.copy()
+            await send_updated_data(new_data1)
+            new_data['event_timestamp'] = pd.to_datetime(new_data['event_timestamp'], format='%Y-%m-%d %H:%M:%S.%f')
+            new_data['last_service_date'] = pd.to_datetime(new_data['last_service_date'], format='%Y-%m-%d %H:%M:%S.%f')
+            new_data['last_service_date'].fillna(pd.Timestamp.min, inplace=True)
+
+            df = pd.concat([df, new_data], ignore_index=True)
+
+
+            if (time.time() - start) > 10:
+                start = time.time()
+                df_insert = df.copy()
+                df_insert['id_forklift'] = df_insert['id_forklift'].astype(int)
+                df_insert['id_warehouse'] = df_insert['id_warehouse'].astype(int)
+                df_insert['id_task'] = df_insert['id_task'].astype(int)
+                file_csv.close()
+                client.execute('INSERT INTO main_data_stg_t2 (status, id_forklift, id_warehouse, id_task, id_point, event_timestamp,last_service_date) VALUES', list(df_insert.itertuples(index=False, name=None)))
+                with open('log.csv', 'w') as file:
+                        pass
+                file_csv = open('log.csv','a')
+                df = pd.DataFrame(columns=['status', 'id_forklift', 'id_warehouse', 'id_task', 'id_point', 'event_timestamp','last_service_date'])
+                df = df.drop(df[df.isin(df_insert.to_dict('list')).all(axis=1)].index)
+    except Exception as ex:
+        print('Error',ex)
+        file_csv.close()
+
 
 
 class LoaderInfo(BaseModel):
@@ -152,13 +136,24 @@ class LoaderInfo(BaseModel):
     next_maintenance_date: datetime
 
 
+
+
 @app.get("/forklift_info/{id_forklift}/{id_warehouse}")
 async def get_loader_info(id_forklift: int, id_warehouse: int):
     # Выполните SQL-запрос к ClickHouse для извлечения информации
     query = f"""
-    select id_forklift, status, id_task, maint_dates.1 as last_d, maint_dates.2 as next_date from(
+        select 
+        id_forklift, 
+        CASE WHEN status in ('CHILL') THEN 'Жду заказ'
+        WHEN status in ('START','WORK_UP') THEN 'Еду за заказом'
+        WHEN status in ('TARGET','WORK_DOWN','FINISH') THEN 'Возвращаюсь с заказом'
+        end as status,
+        id_task,
+        maint_dates as last_d,
+        maint_dates + INTERVAL 181 DAY AS "Дата следующего ТО"
+    from(
         SELECT  mds.id_forklift, mds.status, mds.id_task, 
-                dictGet('maintenance_catalog_dict', ('last_maintenance_date', 'next_maintenance_date'), ({id_forklift}, {id_warehouse})) as maint_dates,
+                dictGet('maintenance_catalog_dict', 'last_maintenance_date', ({id_forklift}, {id_warehouse})) as maint_dates,
                 mds.event_timestamp
                 FROM default.main_data_stg mds
                 WHERE mds.id_forklift = {id_forklift}
@@ -185,7 +180,6 @@ async def get_loader_info(id_forklift: int, id_warehouse: int):
     )
     
     return loader_info
-
 if __name__ == "__main__":
 
-    uvicorn.run(app, host="75.119.142.124", port=8001)
+    uvicorn.run(app, host="75.119.142.124", port=8002)
