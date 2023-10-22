@@ -1,6 +1,6 @@
 # main.py
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.websockets import WebSocketState
 #import databases
 #import sqlalchemy
@@ -13,12 +13,15 @@ from fastapi import HTTPException
 import json
 from datetime import datetime
 import time
+from fastapi.routing import APIRoute
+from fastapi.templating import Jinja2Templates
 
 
 client = Client(host='75.119.142.124', port=9035, user='default', password='qolkasw10-=', database='default')
 
 # FastAPI setup
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
 df = pd.DataFrame(columns=['status', 'id_forklift', 'id_warehouse', 'id_task', 'id_point', 'event_timestamp','last_service_date'])
 
@@ -131,7 +134,18 @@ async def websocket_endpoint(websocket: WebSocket):
         print('Error----------------------------------------------',ex)
         file_csv.close()
 
+def list_routes():
+    routes = []
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            routes.append({"path": route.path, "methods": route.methods})
+    return routes
 
+@app.get("/")
+async def home(request: Request):
+    routes = list_routes()
+    return templates.TemplateResponse("routes_template.html", {"request":request, "routes": routes})
+    
 
 class LoaderInfo(BaseModel):
     id_forklift: int
@@ -139,8 +153,6 @@ class LoaderInfo(BaseModel):
     id_task: int
     last_maintenance_date: datetime
     next_maintenance_date: datetime
-
-
 
 
 @app.get("/forklift_info/{id_forklift}/{id_warehouse}")
