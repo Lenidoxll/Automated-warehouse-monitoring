@@ -156,10 +156,21 @@ async def home(request: Request):
     routes = list_routes()
     return templates.TemplateResponse("routes_template.html", {"request":request, "routes": routes})
 
-
-@app.get("/query1/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
-async def get_loader_info(id_forklift: int, id_warehouse: int,from_ts,to_ts):
-    dists = {'K1': {'K1': 0, 'K2': 5},
+def get_dist(s, f):
+    dist = 0
+    curr_node = s
+    stack = [(s, 0)]
+    node___visited = set()
+    while stack:
+        curr_node, curr_dist = stack.pop()
+        if curr_node in node___visited:
+            continue
+        if curr_node == f:
+            return curr_dist
+        for neigh in dists.get(curr_node, {}):
+            stack.append((neigh, curr_dist + dists[curr_node][neigh]))
+        node___visited.add(curr_node)
+dists = {'K1': {'K1': 0, 'K2': 5},
     'K2': {'K2': 0, 'K1': 5, 'K3': 10, 'K5': 5},
     'K3': {'K3': 0, 'K2': 10, 'X1': 10, 'K4': 15},
     'X1': {'X1': 0, 'K3': 10},
@@ -175,6 +186,17 @@ async def get_loader_info(id_forklift: int, id_warehouse: int,from_ts,to_ts):
     'X5': {'X5': 0, 'K9': 5},
     'K10': {'K10': 0, 'K9': 15, 'X6': 10},
     'X6': {'X6': 0, 'K10': 10}}
+all_dists = {}
+for k1 in dists:
+    for k2 in dists:
+        if k1 not in all_dists:
+            all_dists[k1] = {}
+        all_dists[k1][k2] = get_dist(k1,k2)
+
+
+@app.get("/query1/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
+async def get_query1(id_forklift: int, id_warehouse: int,from_ts,to_ts):
+   
     # Выполните SQL-запрос к ClickHouse для извлечения информации
     from_datetime = datetime.strptime(from_ts, "%Y-%m-%d")
     to_datetime = datetime.strptime(to_ts, "%Y-%m-%d")
@@ -193,10 +215,13 @@ ORDER by event_timestamp ASC ;
         result = client.execute(query)
         if result ==[]:
             return {}
-        df = pd.DataFrame(result, columns=[desc[0] for desc in client.execute("DESCRIBE `default`.main_data_stg")])
-        df['dist'] = df.apply(lambda row: dists[row['id_point']][row['id_next_point']],axis=1)
-        result = df['dist'].sum()
-        print(result)
+        # Convert the result to a Pandas DataFrame
+        df1 = pd.DataFrame(result, columns=[desc[0] for desc in client.execute(f"DESCRIBE `default`.main_data_stg")])
+        df1['id_next_point'] = df1.id_point.shift(-1)
+
+        df1['dist'] = df1.apply(lambda row: all_dists[row['id_point']].get(row['id_next_point'],0),axis=1)
+        result = float(df1['dist'].sum())
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -208,7 +233,7 @@ ORDER by event_timestamp ASC ;
 
 
 @app.get("/query2/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
-async def get_loader_info(id_forklift: int,id_warehouse: int,from_ts,to_ts):
+async def get_query2(id_forklift: int,id_warehouse: int,from_ts,to_ts):
     # Выполните SQL-запрос к ClickHouse для извлечения информации
     from_datetime = datetime.strptime(from_ts, "%Y-%m-%d")
     to_datetime = datetime.strptime(to_ts, "%Y-%m-%d")
@@ -236,7 +261,7 @@ and status = 'FINISH'
 
 
 @app.get("/query3/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}/{num}")   # YYYY-MM-DD
-async def get_loader_info(id_forklift: int,id_warehouse: int,from_ts,to_ts,num: int):
+async def get_query3(id_forklift: int,id_warehouse: int,from_ts,to_ts,num: int):
     # Выполните SQL-запрос к ClickHouse для извлечения информации
     from_datetime = datetime.strptime(from_ts, "%Y-%m-%d")
     to_datetime = datetime.strptime(to_ts, "%Y-%m-%d")
@@ -255,14 +280,14 @@ ORDER by event_timestamp ASC ;
         result = client.execute(query)
         if result ==[]:
             return {}
-        df = pd.DataFrame(result, columns=[desc[0] for desc in client.execute("DESCRIBE `default`.main_data_stg")])
+        df1 = pd.DataFrame(result, columns=[desc[0] for desc in client.execute("DESCRIBE `default`.main_data_stg")])
         # leave only start/finish events. assume the rover moves all the time, while not on k1 station
-        idle_time = (df['event_timestamp'] - df['event_timestamp'].shift(1)).sum() 
-        if df['status'][0] == 'START':
-            idle_time = (df['event_timestamp'] - df['event_timestamp'].shift(1))[1::2].sum()
+        idle_time = (df1['event_timestamp'] - df1['event_timestamp'].shift(1)).sum() 
+        if df1['status'][0] == 'START':
+            idle_time = (df1['event_timestamp'] - df1['event_timestamp'].shift(1))[1::2].sum()
         else:
-            idle_time (df['event_timestamp'] - df['event_timestamp'].shift(1))[::2].sum()
-        busy_time = df['event_timestamp'].max() - df['event_timestamp'].min() - idle_time
+            idle_time (df1['event_timestamp'] - df1['event_timestamp'].shift(1))[::2].sum()
+        busy_time = df1['event_timestamp'].max() - df1['event_timestamp'].min() - idle_time
         if num==1:
             return busy_time   
         else:
@@ -294,10 +319,10 @@ ORDER by event_timestamp ASC ;
         result = client.execute(query)
         if result ==[]:
             return {}
-        df = pd.DataFrame(result, columns=[desc[0] for desc in client.execute("DESCRIBE `default`.main_data_stg")])
-        resps = df[df['status'] != df['status'].shift()]
+        df1 = pd.DataFrame(result, columns=[desc[0] for desc in client.execute("DESCRIBE `default`.main_data_stg")])
+        resps = df1[df1['status'] != df1['status'].shift()]
        # print(resps)
-        resps['time_in_state'] = resps['event_timestamp'] - df['event_timestamp'].shift()
+        resps['time_in_state'] = resps['event_timestamp'] - df1['event_timestamp'].shift()
         result = resps.groupby(['status']).aggregate({'time_in_state': 'sum' })
         result['time_in_state'] = result['time_in_state'].apply(lambda x: str(x))
         #Преобразовать результат агрегации в словарь
