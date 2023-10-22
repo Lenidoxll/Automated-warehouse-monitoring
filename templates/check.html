@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add HTML Elements from an Array of Objects</title>
+</head>
+<body>
+  <ul id="elementList"></ul>
+
+  <script>
+    // Function to add HTML elements from an array of objects
+    function addElementsFromArray(arrayOfObjects) {
+      const elementList = document.getElementById('elementList');
+
+      arrayOfObjects.forEach(function (object) {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${object.name}: ${object.value}`;
+        elementList.appendChild(listItem);
+      });
+    }
+
+    // Example array of objects
+    const arrayOfObjects = [
+      { name: 'Item 1', value: 'Value 1' },
+      { name: 'Item 2', value: 'Value 2' },
+      { name: 'Item 3', value: 'Value 3' },
+    ];
+
+    // Call the function to add elements to the list
+    addElementsFromArray(arrayOfObjects);
+  </script>
+</body>
+</html>
