@@ -5,7 +5,7 @@ from Task import TaskQueue
 import websockets
 import asyncio
 
-uri = "ws://75.119.142.124:8001/ws"
+uri = "ws://75.119.142.124:8002/ws"
 class Path:
     """
     Path class.
@@ -82,7 +82,7 @@ class Forklift:
         # method to get new task, if forklift is free and chilling
         self.task = self.task_queue.get_task()
         if self.task:
-            asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"START;{self.id};{self.warehouse_id};{self.task.id};K1;{datetime.now()}"))
+            asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"START;{self.id};{self.warehouse_id};{self.task.id};K1;{datetime.now()};{self.last_service_date}"))
             print(
                 f"Forklift #{self.id} of warehouse #{self.warehouse_id} "
                 f"have started the task #{self.task.id} "
@@ -90,7 +90,7 @@ class Forklift:
             self.task.start()  # change task status, maybe needed later. Or not =)
             self.current_path = Path(self.task.path_id)  # get Path object
             self.current_point = self.current_path.get_next_checkpoint()  # and first point
-            asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"WORK;{self.id};{self.warehouse_id};{self.task.id};{self.current_point['check_point_name']};{datetime.now()}"))
+            asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"WORK_UP;{self.id};{self.warehouse_id};{self.task.id};{self.current_point['check_point_name']};{datetime.now()};"))
             print(
                 f"Forklift #{self.id} of warehouse #{self.warehouse_id} "
                 f"have reach the point {self.current_point['check_point_name']} "
@@ -101,7 +101,8 @@ class Forklift:
             self.path_direction = "forward"
             self.status = 'working'
         else:
-            pass
+            asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"CHILL;{self.id};{self.warehouse_id};{self.task.id};K1;{datetime.now()};{self.last_service_date}"))
+
             # there can be message that there is no tasks in queue, but it's annoying
             # print(f"TaskQueue of warehouse #{self.warehouse_id} is empty "
             #       f"Forklift #{self.id} stay chill")
@@ -120,7 +121,10 @@ class Forklift:
                 if datetime.now() > self.next_point_time:
                     # if forklift have next point - then let it go
                     if self.next_point:
-                        asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"WORK;{self.id};{self.warehouse_id};{self.task.id};{self.next_point['check_point_name']};{datetime.now()}"))
+                        if self.path_direction=='forward':
+                            asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"WORK_UP;{self.id};{self.warehouse_id};{self.task.id};{self.next_point['check_point_name']};{datetime.now()};"))
+                        else:
+                            asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"WORK_DOWN;{self.id};{self.warehouse_id};{self.task.id};{self.next_point['check_point_name']};{datetime.now()};"))                        
                         print(
                             f"Forklift #{self.id} of warehouse #{self.warehouse_id} "
                             f"have reach the point {self.next_point['check_point_name']} "
@@ -136,7 +140,7 @@ class Forklift:
                         except StopIteration:
                             # if there is no more points and forklift go forward - it reach the target
                             if self.path_direction == "forward":
-                                asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"WORK;{self.id};{self.warehouse_id};{self.task.id};{self.current_path.target_rack_id};{datetime.now()}"))
+                                asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"TARGET;{self.id};{self.warehouse_id};{self.task.id};{self.current_path.target_rack_id};{datetime.now()};"))
                                 print(
                                     f"Forklift #{self.id} of warehouse #{self.warehouse_id} "
                                     f"have reach the target {self.current_path.target_rack_id} "
@@ -154,7 +158,7 @@ class Forklift:
                                 self.next_point = None
                     # if we reach this else condition then forklift finish the task
                     else:
-                        asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"FINISH;{self.id};{self.warehouse_id};{self.task.id};K1;{datetime.now()}"))                    
+                        asyncio.get_event_loop().run_until_complete(self.send_message_to_server(f"FINISH;{self.id};{self.warehouse_id};{self.task.id};K1;{datetime.now()};"))                    
                         print(
                             f"Forklift #{self.id} of warehouse #{self.warehouse_id} "
                             f"have finished the task #{self.task.id} "
