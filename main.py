@@ -216,8 +216,8 @@ async def get_loader_info(id_forklift: int,id_warehouse: int,from_ts,to_ts):
     query = f"""
 SELECT COUNT(*)
 FROM `default`.main_data_stg
-WHERE id_forklift = id_forklift 
-and id_warehouse =  id_warehouse
+WHERE id_forklift = {id_forklift} 
+and id_warehouse =  {id_warehouse}
 and event_timestamp BETWEEN '{from_datetime}' and '{to_datetime}'
 and status = 'FINISH'
                 """
@@ -243,8 +243,8 @@ async def get_loader_info(id_forklift: int,id_warehouse: int,from_ts,to_ts,num: 
     query = f"""
 SELECT *
 FROM `default`.main_data_stg
-WHERE id_forklift = id_forklift 
-and id_warehouse =  id_warehouse
+WHERE id_forklift = {id_forklift} 
+and id_warehouse =  {id_warehouse}
 and event_timestamp BETWEEN '{from_datetime}' and '{to_datetime}'
 AND (status IN ('FINISH','START')) 
 ORDER by event_timestamp ASC ;
@@ -282,8 +282,8 @@ async def get_loader_info(id_forklift: int,id_warehouse: int,from_ts,to_ts):
     query = f"""
 SELECT *
 FROM `default`.main_data_stg
-WHERE id_forklift = id_forklift 
-and id_warehouse =  id_warehouse
+WHERE id_forklift = {id_forklift} 
+and id_warehouse =  {id_warehouse}
 and event_timestamp BETWEEN '{from_datetime}' and '{to_datetime}'
 ORDER by event_timestamp ASC ;
 
@@ -298,10 +298,15 @@ ORDER by event_timestamp ASC ;
         resps = df[df['status'] != df['status'].shift()]
        # print(resps)
         resps['time_in_state'] = resps['event_timestamp'] - df['event_timestamp'].shift()
-        result = resps.groupby(['status', 'id_forklift', 'id_warehouse']).aggregate({'time_in_state': 'sum' })
+        result = resps.groupby(['status']).aggregate({'time_in_state': 'sum' })
+        result['time_in_state'] = result['time_in_state'].apply(lambda x: str(x))
+        #Преобразовать результат агрегации в словарь
+        result = result.to_dict()
         print(result)
+        result = json.dumps(result)
+
         # Преобразовать результат агрегации в JSON
-        result = result.to_json(orient='split')
+        #result = result.to_json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
    # if not result:
@@ -359,4 +364,4 @@ async def canvas(request: Request):
 
 if __name__ == "__main__":
 
-    uvicorn.run(app, host="75.119.142.124", port=8002)
+    uvicorn.run(app, host="75.119.142.124", port=8003)
