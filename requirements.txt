@@ -1,0 +1,5 @@
+matplotlib
+pandas
+fastapi
+uvicorn
+clickhouse_driver

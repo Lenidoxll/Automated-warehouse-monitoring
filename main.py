@@ -1,8 +1,8 @@
 # main.py
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Form
 from fastapi.websockets import WebSocketState
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 import uvicorn
 import pandas as pd
 from clickhouse_driver import Client
@@ -170,6 +170,7 @@ def get_dist(s, f):
         for neigh in dists.get(curr_node, {}):
             stack.append((neigh, curr_dist + dists[curr_node][neigh]))
         node___visited.add(curr_node)
+
 dists = {'K1': {'K1': 0, 'K2': 5},
     'K2': {'K2': 0, 'K1': 5, 'K3': 10, 'K5': 5},
     'K3': {'K3': 0, 'K2': 10, 'X1': 10, 'K4': 15},
@@ -194,7 +195,7 @@ for k1 in dists:
         all_dists[k1][k2] = get_dist(k1,k2)
 
 
-@app.get("/query1/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
+@app.post("/query1/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
 async def get_query1(id_forklift: int, id_warehouse: int,from_ts,to_ts):
    
     # Выполните SQL-запрос к ClickHouse для извлечения информации
@@ -232,7 +233,7 @@ ORDER by event_timestamp ASC ;
     return result
 
 
-@app.get("/query2/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
+@app.post("/query2/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
 async def get_query2(id_forklift: int,id_warehouse: int,from_ts,to_ts):
     # Выполните SQL-запрос к ClickHouse для извлечения информации
     from_datetime = datetime.strptime(from_ts, "%Y-%m-%d")
@@ -260,7 +261,7 @@ and status = 'FINISH'
     return result
 
 
-@app.get("/query3/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}/{num}")   # YYYY-MM-DD
+@app.post("/query3/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}/{num}")   # YYYY-MM-DD
 async def get_query3(id_forklift: int,id_warehouse: int,from_ts,to_ts,num: int):
     # Выполните SQL-запрос к ClickHouse для извлечения информации
     from_datetime = datetime.strptime(from_ts, "%Y-%m-%d")
@@ -298,8 +299,8 @@ ORDER by event_timestamp ASC ;
         raise HTTPException(status_code=404, detail="Loader information not found")
     return result
 
-@app.get("/query4/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
-async def get_loader_info(id_forklift: int,id_warehouse: int,from_ts,to_ts):
+@app.post("/query4/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")   # YYYY-MM-DD
+async def get_query4(id_forklift: int,id_warehouse: int,from_ts,to_ts):
     # Выполните SQL-запрос к ClickHouse для извлечения информации
     from_datetime = datetime.strptime(from_ts, "%Y-%m-%d")
     to_datetime = datetime.strptime(to_ts, "%Y-%m-%d")
@@ -386,6 +387,30 @@ async def get_loader_info(id_forklift: int, id_warehouse: int):
 @app.get("/canvas")
 async def canvas(request: Request):
     return FileResponse(path="templates/index.html", media_type="text/html")
+
+@app.post('/')
+async def process_form(
+    request: Request,
+    id_forklift: int = Form(...),
+    id_warehouse: int = Form(...),
+    from_ts: str = Form(...),
+    to_ts: str = Form(...),
+    query_type: str = Form(...)
+):
+    # Process the form data here
+    # You can access id_forklift, id_warehouse, from_ts, and to_ts in your application logic
+
+    # return {"id_forklift": id_forklift, "id_warehouse": id_warehouse, "from_ts": from_ts, "to_ts": to_ts}
+    context = {
+            "id_forklift": id_forklift,
+            "id_warehouse": id_warehouse,
+            "from_ts": from_ts,
+            "to_ts": to_ts,
+            "query_type": query_type
+        }
+
+        # Determine which dynamic route to redirect to based on form input
+    return RedirectResponse(url=f"/{query_type}/{id_forklift}/{id_warehouse}/{from_ts}/{to_ts}")
 
 if __name__ == "__main__":
 

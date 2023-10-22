@@ -5,6 +5,28 @@
 </head>
 <body>
     <h1>FastAPI Routes</h1>
+    <form action="/" method="post">
+        <label for="id_forklift">Forklift ID:</label>
+        <input type="text" name="id_forklift" id="id_forklift" value="1" required><br>
+        <label for="id_warehouse">Warehouse ID:</label>
+        <input type="text" name="id_warehouse" id="id_warehouse" value="2" required><br>
+        <label for="from_ts">From Timestamp:</label>
+        <input type="text" name="from_ts" id="from_ts" value="2023-10-21" required><br>
+        <label for="to_ts">To Timestamp:</label>
+        <input type="text" name="to_ts" id="to_ts" value="2023-10-25" required><br>
+        <label for="query_type">Query Type:</label>
+        <input type="text" name="query_type" id="query_type" value="query1" required><br>
+        <input type="submit" value="Submit">
+    </form>
+
+    <body>
+        <h1>FastAPI Routes</h1>
+        <p>Forklift ID: {{ id_forklift }}</p>
+        <p>Warehouse ID: {{ id_warehouse }}</p>
+        <p>From Timestamp: {{ from_ts }}</p>
+        <p>To Timestamp: {{ to_ts }}</p>
+        <!-- Other content in your template -->
+    </body>
     <ul>
         {% for route in routes %}
             <li>
