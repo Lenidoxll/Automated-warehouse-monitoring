@@ -117,13 +117,18 @@ async def websocket_endpoint(websocket: WebSocket):
                 df_insert['id_task'] = df_insert['id_task'].astype(int)
                 file_csv.close()
                 client.execute('INSERT INTO main_data_stg_t2 (status, id_forklift, id_warehouse, id_task, id_point, event_timestamp,last_service_date) VALUES', list(df_insert.itertuples(index=False, name=None)))
+                selected_rows = df_insert[(df_insert['status'] == 'CHILL') | (df_insert['status'] == 'START')]
+                selected_columns = selected_rows[['id_forklift', 'id_warehouse', 'last_service_date']]
+                selected_columns = selected_columns.rename(columns={'last_service_date': 'last_maintenance_date','id_warehouse':'id_warehousr'})
+                selected_columns['next_maintenance_date'] = selected_columns['last_maintenance_date'] + pd.Timedelta(days=181)
+                client.execute('INSERT INTO maintenance_catalog (id_forklift, id_warehousr, last_maintenance_date, next_maintenance_date) VALUES', list(selected_columns.itertuples(index=False, name=None)))                    
                 with open('log.csv', 'w') as file:
                         pass
                 file_csv = open('log.csv','a')
                 df = pd.DataFrame(columns=['status', 'id_forklift', 'id_warehouse', 'id_task', 'id_point', 'event_timestamp','last_service_date'])
                 df = df.drop(df[df.isin(df_insert.to_dict('list')).all(axis=1)].index)
     except Exception as ex:
-        print('Error',ex)
+        print('Error----------------------------------------------',ex)
         file_csv.close()
 
 
