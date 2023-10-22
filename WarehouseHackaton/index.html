@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <script src="canvas.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/analysis.js"></script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;700&family=Montserrat:wght@500&family=Unbounded:wght@300&display=swap" rel="stylesheet">
     <title>Мониторинг склада</title>
@@ -17,7 +18,7 @@
             <div class="scheme" id="scheme">
                 <canvas class="scheme_canvas" id='example'>Обновите браузер</canvas>
             </div>
-            <script src="canvas.js"></script>
+            <script src="js/canvas.js"></script>
             <div class="log">log</div>
         </div>
     </div>
@@ -26,61 +27,252 @@
             <div class="label">Аналитика</div>
             <div class="dropdown">
                 <button>
-                    <div class="profile_name">Пройденное расстояние</div>
-                    <img src="arrow.png" alt="" class="img">
+                    <div class="profile_name" id="p_n">Пройденное расстояние</div>
+                    <img src="imgs/arrow.png" alt="" class="img">
                 </button>
                 <div class="dropdown-options">
-                  <a href="#">Пройденное расстояние</a>
-                  <a href="#">Количество выполненных заказов</a>
-                  <a href="#">Время в движениее</a>
-                  <a href="#">Время простоя</a>
-                  <a href="#">Время нахождения в каждом статусе</a>
+                    <a onclick="SetActive(1)">Пройденное расстояние</a>
+                    <a onclick="SetActive(2)">Количество выполненных заказов</a>
+                    <a onclick="SetActive(3)">Время в движениее</a>
+                    <a onclick="SetActive(4)">Время простоя</a>
+                    <a onclick="SetActive(5)">Время нахождения в каждом статусе</a>
                 </div>
               </div>
-            <div class="table_ladel">
-                <div class="label_id">id</div>
-                <div class="falue">falue</div>
+            <div class="table_1" id="t_1">
+                <div class="table_ladel">
+                    <div class="label_id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
             </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
+            
+            <div class="table_1" id="t_2">
+                <div class="table_ladel">
+                    <div class="label_id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
             </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
+            
+            <div class="table_1" id="t_3">
+                <div class="table_ladel">
+                    <div class="label_id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
             </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
+            
+            <div class="table_1" id="t_4">
+                <div class="table_ladel">
+                    <div class="label_id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
             </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
+            
+            <div class="table_1" id="t_5">
+                <div class="table_ladel">
+                    <div class="label_id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
+                <div class="table_row">
+                    <div class="id">id</div>
+                    <div class="falue">falue</div>
+                </div>
             </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
-            </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
-            </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
-            </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
-            </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
-            </div>
-            <div class="table_row">
-                <div class="id">id</div>
-                <div class="falue">falue</div>
-            </div>
+            
         </div>
     </div>
 </body>
