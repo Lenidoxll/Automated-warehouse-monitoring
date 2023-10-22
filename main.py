@@ -2,6 +2,7 @@
 import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.websockets import WebSocketState
+from fastapi.responses import FileResponse
 #import databases
 #import sqlalchemy
 #from databases import Database
@@ -15,6 +16,8 @@ from datetime import datetime
 import time
 from fastapi.routing import APIRoute
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 
 client = Client(host='75.119.142.124', port=9035, user='default', password='qolkasw10-=', database='default')
@@ -22,6 +25,8 @@ client = Client(host='75.119.142.124', port=9035, user='default', password='qolk
 # FastAPI setup
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 df = pd.DataFrame(columns=['status', 'id_forklift', 'id_warehouse', 'id_task', 'id_point', 'event_timestamp','last_service_date'])
 
@@ -197,6 +202,11 @@ async def get_loader_info(id_forklift: int, id_warehouse: int):
     )
     
     return loader_info
+
+@app.get("/canvas")
+async def canvas(request: Request):
+    return FileResponse(path="templates/index.html", media_type="text/html")
+
 if __name__ == "__main__":
 
     uvicorn.run(app, host="75.119.142.124", port=8002)
